@@ -44,7 +44,9 @@
 ##  each of which has one of the following three forms.
 ##  <Enum>
 ##  <Item>
-##      a nonempty dense list <M>l</M> of integers,
+##      a nonempty dense list <M>l</M> of integers with an even length
+##      of the form <M>[ g_1, e_1, g_2, e_2, \ldots ]</M>, which is
+##      interpreted as <M>g_1^(e_1)g_2^(e_2)\ldots </M>,
 ##  </Item>
 ##  <Item>
 ##      a pair <M>[ l, i ]</M>
@@ -65,6 +67,35 @@
 ##  <M>g_1^3 g_2^{{-1}}</M>, with <M>g_1</M> and <M>g_2</M> the first and
 ##  second abstract generator, respectively.
 ##  <P/>
+##  In the following example the formula from above is calculated
+##  (<M>ababbab</M>). Note that the first two lines of <K>lines</K> are of the
+##  form 1 and the last line is of form 3. Using <K>lines</K> we specify how
+##  to calculate the result - you can compare this with the code of a program.
+##  Then we create the program <K>prg</K> and execute it for certain values.
+##  Of course those values can vary.
+##  <Example><![CDATA[
+##  gap> lines := [ [ 1, 1, 2, 1 ],
+##  > [ 3, 1, 2, 1 ],
+##  > [ [ 3, 1, 4, 1, 3, 1 ] ] ];;
+##  gap> prg := StraightLineProgram( lines, 2 );;
+##  <straight line program>
+##  gap> Display( prg );
+##  # input:
+##  r:= [ g1, g2 ];
+##  # program:
+##  r[3]:= r[1]*r[2];
+##  r[4]:= r[3]*r[2];
+##  # return values:
+##  [ r[3]*r[4]*r[3] ]
+##  gap> ResultOfStraightLineProgram( prg, [ 2, 3 ] );
+##  [ 648 ]
+##  gap> # And we can verify that the result is the same
+##  gap> # as the formula from above:
+##  gap> a := 2;; b := 3;;
+##  gap> a*b*a*b*b*a*b;
+##  648
+##  ]]></Example>
+##  
 ##  For the meaning of the list of lines, see
 ##  <Ref Oper="ResultOfStraightLineProgram"/>.
 ##  <P/>
@@ -82,9 +113,9 @@
 ##  <Ref Oper="IsInternallyConsistent"/>, <Ref Oper="PrintObj"/>,
 ##  and <Ref Oper="ViewObj"/>.
 ##  <P/>
-##  For a straight line program <A>prog</A>,
+##  For a straight line program <A>prg</A>,
 ##  the default <Ref Oper="Display"/> method prints the interpretation
-##  of <A>prog</A> as a sequence of assignments of associative words;
+##  of <A>prg</A> as a sequence of assignments of associative words;
 ##  a record with components <C>gensnames</C> (with value a list of strings)
 ##  and <C>listname</C> (a string) may be entered as second argument of
 ##  <Ref Oper="Display"/>,
@@ -147,6 +178,32 @@ DeclareCategory( "IsStraightLineProgram", IsObject );
 ##  <Ref Func="StraightLineProgram" Label="for a list of lines (and the number of generators)"/>
 ##  returns <K>fail</K>.
 ##  <P/>
+##  Let us look at an example to clarify this. We will use the situation as
+##  defined above.
+##  <Example><![CDATA[
+##  gap> lines := [ [ 1, 1, 2, 1 ], [ 3, 1, 2, 1 ], [ 3, 1, 4, 1, 3, 1 ] ];;
+##  gap> prg := StraightLineProgram( lines );
+##  fail
+##  gap> lines2 := [ [ [ 1, 1, 2, 1 ], 3 ],
+##  > [ [ 3, 1, 2, 1 ], 4 ],
+##  > [ [ 3, 1, 4, 1, 3, 1 ] ] ];;
+##  gap> prg := StraightLineProgram( lines );
+##  <straight line program>
+##  gap> Display(prg);
+##  # input:
+##  r:= [ g1, g2 ];
+##  # program:
+##  r[3]:= r[1]*r[2];
+##  r[4]:= r[3]*r[2];
+##  # return values:
+##  [ r[3]*r[4]*r[3] ]
+##  ]]></Example>
+##  In <K>lines</K> every line except the last one is of form 1 and thus the
+##  program doesn't know how much input it gets and how many slots it has to
+##  keep free. In <K>lines2</K> every line (again except the last one) is of
+##  form 2. Here we have a list of form 1 and then an integer which specifies
+##  where to save the computed formula (in slot 3 and 4).
+##  <P/>
 ##  In the second form, <A>string</A> must be a nonempty string describing an
 ##  arithmetic expression in terms of the strings in the list <A>gens</A>,
 ##  where multiplication is denoted by concatenation, powering is denoted by
@@ -200,14 +257,14 @@ DeclareGlobalFunction( "StringToStraightLineProgram" );
 
 #############################################################################
 ##
-#A  LinesOfStraightLineProgram( <prog> )
+#A  LinesOfStraightLineProgram( <prg> )
 ##
 ##  <#GAPDoc Label="LinesOfStraightLineProgram">
 ##  <ManSection>
-##  <Attr Name="LinesOfStraightLineProgram" Arg='prog'/>
+##  <Attr Name="LinesOfStraightLineProgram" Arg='prg'/>
 ##
 ##  <Description>
-##  For a straight line program <A>prog</A>,
+##  For a straight line program <A>prg</A>,
 ##  <Ref Attr="LinesOfStraightLineProgram"/> returns
 ##  the list of program lines.
 ##  There is no default method to compute these lines if they are not stored.
@@ -220,23 +277,23 @@ DeclareAttribute( "LinesOfStraightLineProgram", IsStraightLineProgram );
 
 #############################################################################
 ##
-#A  NrInputsOfStraightLineProgram( <prog> )
+#A  NrInputsOfStraightLineProgram( <prg> )
 ##
 ##  <#GAPDoc Label="NrInputsOfStraightLineProgram">
 ##  <ManSection>
-##  <Attr Name="NrInputsOfStraightLineProgram" Arg='prog'/>
+##  <Attr Name="NrInputsOfStraightLineProgram" Arg='prg'/>
 ##
 ##  <Description>
-##  For a straight line program <A>prog</A>,
+##  For a straight line program <A>prg</A>,
 ##  <Ref Attr="NrInputsOfStraightLineProgram"/>
 ##  returns the number of generators that are needed as input.
 ##  <P/>
 ##  If a line of form 1. (that is, a list of integers) occurs in the lines of
-##  <A>prog</A> except the last line
+##  <A>prg</A> except the last line
 ##  then the number of generators is not determined by the lines,
 ##  and must be set in the construction of the straight line program
 ##  (see&nbsp;<Ref Func="StraightLineProgram" Label="for a list of lines (and the number of generators)"/>).
-##  So if <A>prog</A> contains a line of form 1. other than the last line
+##  So if <A>prg</A> contains a line of form 1. other than the last line
 ##  and does <E>not</E> store the number of generators
 ##  then <Ref Attr="NrInputsOfStraightLineProgram"/> signals an error.
 ##  </Description>
@@ -248,15 +305,15 @@ DeclareAttribute( "NrInputsOfStraightLineProgram", IsStraightLineProgram );
 
 #############################################################################
 ##
-#O  ResultOfStraightLineProgram( <prog>, <gens> )
+#O  ResultOfStraightLineProgram( <prg>, <gens> )
 ##
 ##  <#GAPDoc Label="ResultOfStraightLineProgram">
 ##  <ManSection>
-##  <Oper Name="ResultOfStraightLineProgram" Arg='prog, gens'/>
+##  <Oper Name="ResultOfStraightLineProgram" Arg='prg, gens'/>
 ##
 ##  <Description>
 ##  <Ref Oper="ResultOfStraightLineProgram"/> evaluates the straight line
-##  program (see&nbsp;<Ref Filt="IsStraightLineProgram"/>) <A>prog</A>
+##  program (see&nbsp;<Ref Filt="IsStraightLineProgram"/>) <A>prg</A>
 ##  at the group elements in the list <A>gens</A>.
 ##  <P/>
 ##  The <E>result</E> of a straight line program with lines
@@ -358,24 +415,24 @@ DeclareOperation( "ResultOfStraightLineProgram",
 
 #############################################################################
 ##
-#F  StringOfResultOfStraightLineProgram( <prog>, <gensnames>[, "LaTeX"] )
+#F  StringOfResultOfStraightLineProgram( <prg>, <gensnames>[, "LaTeX"] )
 ##
 ##  <#GAPDoc Label="StringOfResultOfStraightLineProgram">
 ##  <Index Subkey="for the result of a straight line program">LaTeX</Index>
 ##  <ManSection>
 ##  <Func Name="StringOfResultOfStraightLineProgram"
-##  Arg='prog, gensnames[, "LaTeX"]'/>
+##  Arg='prg, gensnames[, "LaTeX"]'/>
 ##
 ##  <Description>
 ##  <Ref Func="StringOfResultOfStraightLineProgram"/> returns a string
 ##  that describes the result of the straight line program
-##  (see&nbsp;<Ref Filt="IsStraightLineProgram"/>) <A>prog</A>
+##  (see&nbsp;<Ref Filt="IsStraightLineProgram"/>) <A>prg</A>
 ##  as word(s) in terms of the strings in the list <A>gensnames</A>.
-##  If the result of <A>prog</A> is a single element then the return value of
+##  If the result of <A>prg</A> is a single element then the return value of
 ##  <Ref Func="StringOfResultOfStraightLineProgram"/> is a string consisting
 ##  of the entries of <A>gensnames</A>, opening and closing brackets <C>(</C>
 ##  and <C>)</C>, and powering by integers via <C>^</C>.
-##  If the result of <A>prog</A> is a list of elements then the return value
+##  If the result of <A>prg</A> is a list of elements then the return value
 ##  of <Ref Func="StringOfResultOfStraightLineProgram"/> is a comma separated
 ##  concatenation of the strings of the single elements,
 ##  enclosed in square brackets <C>[</C>, <C>]</C>.
@@ -395,23 +452,23 @@ DeclareGlobalFunction( "StringOfResultOfStraightLineProgram" );
 
 #############################################################################
 ##
-#F  CompositionOfStraightLinePrograms( <prog2>, <prog1> )
+#F  CompositionOfStraightLinePrograms( <prg2>, <prg1> )
 ##
 ##  <#GAPDoc Label="CompositionOfStraightLinePrograms">
 ##  <ManSection>
-##  <Func Name="CompositionOfStraightLinePrograms" Arg='prog2, prog1'/>
+##  <Func Name="CompositionOfStraightLinePrograms" Arg='prg2, prg1'/>
 ##
 ##  <Description>
-##  For two straight line programs <A>prog1</A> and <A>prog2</A>,
+##  For two straight line programs <A>prg1</A> and <A>prg2</A>,
 ##  <Ref Func="CompositionOfStraightLinePrograms"/> returns a straight line
-##  program <A>prog</A> with the properties that <A>prog1</A> and <A>prog</A>
-##  have the same number of inputs, and the result of <A>prog</A>
+##  program <A>prg</A> with the properties that <A>prg1</A> and <A>prg</A>
+##  have the same number of inputs, and the result of <A>prg</A>
 ##  when applied to given generators <A>gens</A> equals the result of
-##  <A>prog2</A> when this is applied to the output of
-##  <A>prog1</A> applied to <A>gens</A>.
+##  <A>prg2</A> when this is applied to the output of
+##  <A>prg1</A> applied to <A>gens</A>.
 ##  <P/>
-##  (Of course the number of outputs of <A>prog1</A> must be the same as the
-##  number of inputs of <A>prog2</A>.)
+##  (Of course the number of outputs of <A>prg1</A> must be the same as the
+##  number of inputs of <A>prg2</A>.)
 ##  <Example><![CDATA[
 ##  gap> prg1:= StraightLineProgram( "a^2b", [ "a","b" ] );;
 ##  gap> prg2:= StraightLineProgram( "c^5", [ "c" ] );;
@@ -436,21 +493,21 @@ DeclareGlobalFunction( "CompositionOfStraightLinePrograms" );
 
 #############################################################################
 ##
-#F  IntegratedStraightLineProgram( <listofprogs> )
+#F  IntegratedStraightLineProgram( <listofprgs> )
 ##
 ##  <#GAPDoc Label="IntegratedStraightLineProgram">
 ##  <ManSection>
-##  <Func Name="IntegratedStraightLineProgram" Arg='listofprogs'/>
+##  <Func Name="IntegratedStraightLineProgram" Arg='listofprgs'/>
 ##
 ##  <Description>
-##  For a nonempty dense list <A>listofprogs</A> of straight line programs
+##  For a nonempty dense list <A>listofprgs</A> of straight line programs
 ##  <M>p_1, p_2, \ldots, p_m</M>, say,
 ##  that have the same number <M>n</M>, say, of inputs
 ##  (see&nbsp;<Ref Attr="NrInputsOfStraightLineProgram"/>),
 ##  <Ref Func="IntegratedStraightLineProgram"/> returns a straight line
-##  program <M>prog</M> with <M>n</M> inputs such that for each
+##  program <M>prg</M> with <M>n</M> inputs such that for each
 ##  <M>n</M>-tuple <M>gens</M> of generators,
-##  <C>ResultOfStraightLineProgram( </C><M>prog, gens</M><C> )</C>
+##  <C>ResultOfStraightLineProgram( </C><M>prg, gens</M><C> )</C>
 ##  is the concatenation of the lists <M>r_1, r_2, \ldots, r_m</M>,
 ##  where <M>r_i</M> is equal to
 ##  <C>ResultOfStraightLineProgram( </C><M>p_i, gens</M><C> )</C>
@@ -560,15 +617,15 @@ DeclareAttribute("StraightLineProgElmType",IsFamily);
 
 #############################################################################
 ##
-#F  StraightLineProgElm(<seed>,<prog>)
+#F  StraightLineProgElm(<seed>,<prg>)
 ##
 ##  <#GAPDoc Label="StraightLineProgElm">
 ##  <ManSection>
-##  <Func Name="StraightLineProgElm" Arg='seed,prog'/>
+##  <Func Name="StraightLineProgElm" Arg='seed,prg'/>
 ##
 ##  <Description>
 ##  Creates a straight line program element for seed <A>seed</A> and program
-##  <A>prog</A>.
+##  <A>prg</A>.
 ##  </Description>
 ##  </ManSection>
 ##  <#/GAPDoc>
